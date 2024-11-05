@@ -14,7 +14,7 @@ API Testing and Development with Postman 第二版自学笔记整理进度。
 | :hourglass_flowing_sand: | Chapter 3  | OpenAPI and API specifications                               |
 |        :no_entry:        | Chapter 4  | Considerations for Good API Test Automation                  |
 |        :no_entry:        | Chapter 5  | Understanding Authorization Options                          |
-|        :no_entry:        | Chapter 6  | Creating Test Validation Scripts                             |
+|    :heavy_check_mark:    | Chapter 6  | [Creating Test Validation Scripts](./Ch06-Creating-Test-Validation-Scripts.md) |
 |        :no_entry:        | Chapter 7  | Data-Driven Testing                                          |
 |        :no_entry:        | Chapter 8  | Workflow Testing                                             |
 |        :no_entry:        | Chapter 9  | Running API Tests in Cl with Newman                          |
@@ -24,3 +24,4 @@ API Testing and Development with Postman 第二版自学笔记整理进度。
 |        :no_entry:        | Chapter 13 | Using Contract Testing to Verify an API                      |
 |        :no_entry:        | Chapter 14 | API Security Testing                                         |
 |        :no_entry:        | Chapter 15 | Performance Testing an API                                   |
+
