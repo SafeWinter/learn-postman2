@@ -386,6 +386,189 @@ pm.test('Luke appears in 4 films', () => {
 
 
 
+## 6.5 在集合、子文件夹层面创建测试
+
+`Collection` 集合、以及集合下的子文件夹（`Folder`）也可以分别创建测试脚本。各级测试脚本的执行顺序依次为：
+
+1. `Collection` 级 `Pre-request` 脚本；
+2. `Folder` 级 `Pre-request` 脚本；
+3. `Endpoint` 级 `Pre-request` 脚本；
+4. `Collection` 级 `Post-response` 脚本；
+5. `Folder` 级 `Post-response` 脚本；
+6. `Endpoint` 级 `Post-response` 脚本；
+
+实测脚本：
+
+```js
+// Collection Pre-request
+pm.test('Collection Pre-request scripts running ...', () => {});
+
+// Collection Post-response
+pm.test('Collection Post-response: the response has a JSON body', () => {
+    pm.response.to.have.jsonBody();
+});
+
+// Folder Pre-request
+pm.test('Folder Pre-request scripts running ...', () => {});
+
+// Folder Post-response
+pm.test("Folder Post-response: Check that they are in film 1", function () {
+    var { films } = pm.response.json();
+    pm.expect(films).to.contain("https://swapi.dev/api/films/1/");
+});
+
+// Endpoint Pre-request
+pm.test('Endpoint Pre-request scripts running ...', () => {});
+
+// Endpoint Post-response
+pm.test('Luke appears in 4 films', () => {
+    const { films } = pm.response.json();
+    pm.expect(films).lengthOf(4);
+});
+```
+
+运行结果：
+
+![](assets/6.12.png)
+
+**图 6.12 不同位置的测试脚本执行顺序实测情况截图**
+
+
+
+### 6.5.1 关于测试结束后的扫尾清理工作
+
+> 测试后的清理工作包括变量值的清除、临时状态的复位等。这类脚本一般都写在 `Post-response` 位置。
+>
+> 鉴于脚本的执行顺序因位置而不同，推荐做法是：
+>
+> - 变量在哪里声明，就在哪里销毁；
+> - 若需传参，则根据脚本的执行顺序来具体确定清理的位置。
+
+### 6.5.2 DIY：在 Postman 中使用 AI 助手
+
+实测发现，最新版 `Postman` 提供了很多贴心的功能，比如 AI 工具 `Postbot`、私包仓库 `Package Library` 等。
+
+`Postbot` 位于 `Postman` 主界面的右下方，通过一问一答的形式回答您具体遇到的 `Postman` 相关的问题，可通过快捷键 <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>P</kbd> 弹出：
+
+![](assets/6.13.png)
+
+**图 6.13 新版 Postman 推出的 AI 助手 Postbot 操作界面**
+
+经实测，`Postbot` 不用科学上网也能正常使用，虽然能用中文提问，但回复内容却是纯英文（慢慢适应吧）。
+
+此外，`Postbot` 还可以根据测试用例中输入的字符串描述信息（即 `pm.test()` 方法的第一个参数，也叫测试名称），结合 AI **自动生成** 相应的测试脚本，甚至都不需要在上述对话框中提问；而且 `Postman` 的很多地方都作了类似这样的智能跟随处理（比如响应的可视化展示、补全接口文档等），用户体验真的做得非常棒（再次感叹咱们国产软件与 `Postman` 之间的差距……）。
+
+目前 `Postbot` 提供每月 50 次免费调用额度。超过额度后需订阅 `Postbot` 付费插件开通不限额使用。截止 2024 年 11 月 6 日，对于免费版、基本版和专业版 `Postman` 用户，付费版 `Postbot` 的价格为 `$9/人/月`；企业版用户则为 `$9/人/月`，暂时只支持按年支付。（再次说明工具好用也是有代价的）
+
+
+
+### 6.5.3 DIY：在 Postman 中使用模块导入功能
+
+实测时还发现一个彩蛋功能：`Package Library`（就叫 **私包仓库**，可好？）。它能够在测试脚本中使用模块导入导出功能（具体用法详见 [Postman 在线文档](https://learning.postman.com/docs/tests-and-scripts/write-scripts/package-library/)），极大地提高了代码的可复用性。下面以上一节的响应 JSON 字段校验为例，重构后的测试脚本更加简洁明了，也符合前端 JS 的开发惯例。
+
+目前 `Package Library` 标签页只支持从右侧边栏打开：
+
+![](assets/6.14.png)
+
+**图 6.14 Postman 新增的私包仓库 Package Library 标签页的打开方法**
+
+然后在弹出的 `Package Library` 标签页，根据提示创建一个 `package` 包（包名随便取，比如这里的 `my-validator`），然后定义模块：
+
+```js
+// Use module.exports to export the functions that should be
+// available to use from this package.
+// module.exports = { <your_function> }
+
+// Once exported, use this statement in your scripts to use the package.
+// const myPackage = pm.require('<package_name>')
+
+const tv4 = require('tv4');
+const Ajv = require('ajv');
+const ajv = new Ajv();
+
+const schema = {
+    type: 'object',
+    properties: {
+        films: {type: 'array'},
+        url: {type: 'string'},
+    },
+    required: [
+        'films', 'url'
+    ]
+};
+
+const validateByTv4 = (target) => tv4.validate(target, schema);
+
+const validateByAjv = (target) => ajv.validate(schema, target);
+
+module.exports = {
+    validateByTv4,
+    validateByAjv
+};
+```
+
+然后使用 `pm.require('<package_name>')` 语法导入到测试用例中，在 `Get People` 请求的 `Post-response` 中输入下列重构脚本：
+
+```js
+const {validateByTv4, validateByAjv} = pm.require('@warped-water-460678/my-validator');
+
+// fictional results from pm.response.json();
+const json1 = {
+    "args": {},
+    "films": [],
+    "files": {},
+    "form": {
+        "foo1": "bar1",
+        "foo2": "bar2"
+    },
+    "headers": {},
+    "json": null,
+    "url": "https://postman-echo.com/post"
+};
+
+pm.test('Response is a valid JSON (via tv4)', function() {
+    pm.expect(validateByTv4(json1)).to.be.true;
+});
+
+pm.test('Response is a valid JSON (via Ajv)', function() {
+    pm.expect(validateByAjv(json1)).to.be.true;
+    const json = pm.response.json();
+    pm.expect(validateByAjv(json)).to.be.true;
+});
+```
+
+运行结果：
+
+![](assets/6.15.png)
+
+**图 6.15 利用 Package Library 定义并导出私有模块、再到断言脚本中导入模块后的运行结果截图**
+
+这样一来，很多可以复用的代码片段都可以通过这样的私有模块进行封装，然后按需导入测试脚本了！
+
+同样，正因为模块功能的强大，创建模块的个数也是严格限制了的。根据目前 `Postman` 官方报价，免费版和基础版的私有模块创建个数不能超过 3 个；专业版不超过 25 个；企业版不超过 100 个。其实也能理解，要是不加限制，允许所有人创建无数个 package 模块，那不就相当于在 Postman 里嵌入了一个 npm 平台么？感觉最多 3 个的限制对于日常接口测试工作感觉已经完全够用了。且行且珍惜吧！
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---
 
 [^1]: 原书这里的写法有误。根据最新版 `Postman`（**v11.18.2**）的实测结果，期望的键值对应该分别作为参数传入 `jsonBody()` 函数内，具体详见下一节第二个实测案例。
