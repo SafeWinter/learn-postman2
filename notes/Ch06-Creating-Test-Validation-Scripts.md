@@ -177,6 +177,22 @@ pm.test("Content-Type is present", function () {
 
 
 
+> [!tip]
+>
+> **关于断言结果取反**
+>
+> 可以在上述断言中添加 `.not` 让断言逻辑取反。例如：
+>
+> ```js
+> pm.response.to.not.have.jsonSchema(mySchema);
+> // 或者
+> pm.response.to.have.not.jsonSchema(mySchema);
+> ```
+>
+> 只要加在助动词（`to`）或动词（`have`）后，取反逻辑就成立。
+
+
+
 ### 6.4.2 实测情况
 
 （1）实测 `.body` 对象：
@@ -291,12 +307,16 @@ const schema = {
     ]
 };
 
+const tv4 = require('tv4');
 pm.test('Response is a valid JSON (via tv4)', function() {
     pm.expect(tv4.validate(json1, schema)).to.be.true;
 });
 
+const Ajv = require('ajv');
+const ajv = new Ajv();
 pm.test('Response is a valid JSON (via Ajv)', function() {
     pm.response.to.have.jsonSchema(schema);
+    pm.expect(ajv.validate(schema, json1)).to.be.true;
 });
 ```
 
@@ -305,6 +325,10 @@ pm.test('Response is a valid JSON (via Ajv)', function() {
 ![](assets/6.7.png)
 
 **图 6.8 校验响应 JSON 的 schema 模式时，Postman 新旧两版写法的实测结果对比截图**
+
+
+
+## 6.5 
 
 
 
