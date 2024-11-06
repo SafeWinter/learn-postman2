@@ -328,7 +328,61 @@ pm.test('Response is a valid JSON (via Ajv)', function() {
 
 
 
-## 6.5 
+（4）本节给出的三个练手测试实战
+
+（4.1）检查服务器是否为 nginx（该信息位于 Header 中）：
+
+```js
+pm.test('The server is nginx', () => {
+    const server = pm.response.headers.get('Server');
+    pm.expect(server).to.contain('nginx');
+});
+```
+
+实测结果：
+
+![](assets/6.10.png)
+
+**图 6.9 实测从 Header 中读取信息、校验服务器是否为 nginx 的运行结果**
+
+
+
+（4.2）检查请求响应时间是否在 500ms 内：
+
+```js
+pm.test('The response time for this call is less than 500ms', () => {
+    pm.response.to.have.responseTime.below(500, 'responseTime too long');
+});
+```
+
+实测结果：
+
+![](assets/6.9.png)
+
+**图 6.10 可根据 Chai.js 相关文档，结合 Postman 自动提示，自定义报错提示内容**
+
+
+
+（4.3）检查 Luke 是否出演过当中的 4 部电影：
+
+```js
+pm.test('Luke appears in 4 films', () => {
+    const { films } = pm.response.json();
+    pm.expect(films).lengthOf(4);
+});
+/* "films": [
+    "https://swapi.dev/api/films/1/",
+    "https://swapi.dev/api/films/2/",
+    "https://swapi.dev/api/films/3/",
+    "https://swapi.dev/api/films/6/"
+],*/
+```
+
+实测结果：
+
+![](assets/6.11.png)
+
+**图 6.11 根据 Postman 自动提示校验响应 JSON 中的某数组字段的长度情况**
 
 
 
