@@ -551,23 +551,139 @@ pm.test('Response is a valid JSON (via Ajv)', function() {
 
 
 
+## 6.6 预请求脚本的使用
+
+本节通过三个示例，演示了预请求脚本在变量设置及定制请求工作流方面的具体应用。测试时经常遇到根据上一个请求结果触发下一个请求的情况，此时就可以利用前一个请求的 `Post-response` 脚本和后一个请求的 `Pre-request` 脚本实现变量的读写，进而实现多个请求间的数据关联。
+
+### 【示例1】手动设置  Get a Person 请求所需参数
+
+具体步骤：
+
+1. 创建一个名为 `Get a Person` 的 GET 请求，URL 为：`{{base_url}}/people/{{person_id}}`。
+2. 在 `Pre-request` 脚本位置定义请求参数 `person_id`：`pm.environment.set("person_id", 1);`
+3. 发送请求。
+
+实测结果：
+
+![](assets/6.16.png)
+
+**图 6.16 手动设置请求参数 person_id 效果图**
 
 
 
+### 【示例2】创建前置请求 Get Homeworld
+
+该请求负责为 `Get Homeworld` 提供目标 URL。
+
+具体步骤：
+
+1. 创建一个名为 `Get a Person` 的 GET 请求，URL 为：`{{base_url}}/planets/1`。
+
+2. 在 `Post-response` 脚本处添加如下代码，定义集合变量 `residentList`：
+
+   ```js
+   const { residents: planetResidents } = pm.response.json();
+   pm.collectionVariables.set("residentList", planetResidents);
+   ```
+
+3. 发送该 `Get Homeworld` 请求。
+
+4. 删除 `Get a Person` 中的预请求脚本，改为如下内容：
+
+   ```js
+   const residentList = pm.collectionVariables.get('residentList');
+   const randomResident = residentList[Math.floor(Math.random() * residentList.length)];
+   pm.environment.set("random_resident", randomResident);
+   ```
+
+5. 修改 `Get a Person` 的 URL，改为：`{{random_resident}}`
+
+6. 发送 `Get a Person` 请求。
+
+实测结果：
+
+![](assets/6.17.png)
+
+**图 6.17 利用集合变量 residentList 和 JavaScript 脚本，随机获取一个 URL 并发送的实测效果图**
+
+这两个示例，后者负责获取 URL 数组，前者从该数组选择任意一个发起二次请求，它们都是手动发送的。`Postman` 的强大在于，可以通过 `JavaScript` 脚本和内置的集合运行工具 Collection Runner 实现多个请求的自定义触发。
 
 
 
+### 【示例3】构建请求工作流
+
+使用 Collection Runner 时，各请求的默认顺序是从上往下顺次执行的。也可以通过请求前的复选框屏蔽某些请求，或者利用拖拽实现简单的排序。此外还可以通过 `JavaScript` 手动指定请求的触发顺序，核心语句为：
+
+```js
+pm.execution.setNextRequest("Get a Person");
+```
+
+这里的 `setNextRequest()` 方法，其参数既可以是一个请求的名称（如 `Get a Person`），根据官方文档，为避免请求名称有变动，也可以是一个请求的 ID（可通过 `pm.info.requestId` 获取当前请求的唯一 ID）。一旦使用了 `setNextRequest()` 来定制请求顺序，就需要避免出现死循环的情况。
+
+另外需要特别注意，`setNextRequest()` 方法只在运行 Collection Runner 时有效，手动点击发送按钮时 **并不会执行**。
+
+**演示内容**：通过 `Collection Runner` 运行两个请求（`Get a Person` 与 `Get Homeworld`），并将前一个请求返回的 URL 集合通过 `JavaScript` 脚本依次作为后一个请求的 URL 并分别发送成功。
+
+**具体步骤**：
+
+1. 在集合 `Star Wars API - Chapter 6` 中创建一个 GET 请求 `Get a Person`，令其 URL 为 `{{resident}}`；
+
+2. 在 `Pre-request` 中输入以下 JS 脚本：
+
+   ```js
+   const residentList = pm.collectionVariables.get('residentList');
+   const currentCount = pm.collectionVariables.get('counter');
+   const resident = residentList[currentCount];
+   pm.collectionVariables.set('resident', resident);
+   if (currentCount < residentList.length - 1) {
+       pm. collectionVariables.set('counter', currentCount + 1);
+       pm.execution.setNextRequest('Get a Person');
+   }
+   ```
+
+3. 创建第二个 GET 请求 `Get Homeworld`，令其 URL 为 `{{base_url}}/planets/1`；
+
+4. 在 `Get Homeworld` 的 `Post-response` 下输入以下内容：
+
+   ```js
+   const { residents: planetResidents } = pm.response.json();
+   pm.collectionVariables.set("residentList", planetResidents);
+   
+   pm.collectionVariables.set("counter", 0);
+   ```
+
+5. 单击打开集合信息标签页，单击右上角的 Run 按钮，勾选需要运行的这两个请求，并让 `Get Homeworld` 优先执行。
+
+6. 一切就绪后，单击运行配置页下方的 `Run Star Wars API - Chapter 6` 按钮执行工作流。
+
+最终结果：
+
+![](assets/6.18.png)
+
+**图 6.19 实测 Collection Runner 运行效果图**
+
+最后还需要注意的是，`Collection Runner` 只对登录用户开放，并且免费版帐号 **每月仅有 25 次** 的调用额度，用完后需要 **另付 49 美元/人/月** 方可无限制使用（截止到 2024/11/18 的官方报价）。可见该功能还是相当烧钱的，毕竟正式环境中可以用它来实现一些比较复杂的定制流程。因此使用 Collection Runner 前请务必做好充分的准备工作，避免浪费当月额度（前一个帐号就踩坑了，等到第一次跑通演示流程时仅剩 3 次额度了……）。
+
+此外，还有一个不大不小的坑需要提一下：运行 `Runner` 工具时最好再次确认每个请求设置都已经保存了，否则 `Postman` 只会按最近一次保存的设置执行工作流。这一块至少浪费了我两次额度……
+
+最后的最后，为了方便调试，运行 `Runner` 工具时最好打开 `Console` 控制台页面，及时查看报错信息（如图 6.19 所示）。
 
 
 
+## 6.7 Postman 环境的使用
+
+本节主要将上一节定制工作流时用到的各种变量从 Collection 作用域迁移到 Environment 作用域，并通过手动发送请求实现了变量的更新。
+
+使用 Postman 的环境时，务必注意安全问题，涉密信息的类型务必设置为 `secret`。由于环境可以共享，当中若有敏感信息也要格外小心。
 
 
 
+## 本章小结
 
-
-
-
-
+- 使用 Postman 断言，可以测试各 API 请求及响应内容。
+- 为了满足测试条件，输入数据可在 `Pre-request` 进行必要的格式转换。
+- 利用 Postman 可以创建自定义的工作流，支持多个请求自动运行。
+- 除了使用 Collection Runner 工具外，第九章还将介绍 Newman 在持续集成（`CI`）中的高级设置。
 
 
 
