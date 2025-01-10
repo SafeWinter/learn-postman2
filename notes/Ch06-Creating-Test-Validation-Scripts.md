@@ -413,7 +413,7 @@ pm.test('Folder Pre-request scripts running ...', () => {});
 
 // Folder Post-response
 pm.test("Folder Post-response: Check that they are in film 1", function () {
-    var { films } = pm.response.json();
+    const { films } = pm.response.json();
     pm.expect(films).to.contain("https://swapi.dev/api/films/1/");
 });
 
@@ -672,7 +672,7 @@ pm.execution.setNextRequest("Get a Person");
 
 ## 6.7 Postman 环境的使用
 
-本节主要将上一节定制工作流时用到的各种变量从 Collection 作用域迁移到 Environment 作用域，并通过手动发送请求实现了变量的更新。
+本节主要将上一节定制工作流时用到的各种变量从 Collection 作用域迁移到 Environment 作用域（即令上一节两个请求脚本中的所有 `pm.collectionVariables` 前缀统一改为 `pm.environment` 前缀），并通过手动发送请求实现了变量的更新。
 
 使用 Postman 的环境时，务必注意安全问题，涉密信息的类型务必设置为 `secret`。由于环境可以共享，当中若有敏感信息也要格外小心。
 
