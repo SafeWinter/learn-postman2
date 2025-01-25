@@ -109,17 +109,17 @@ Chapter 15, Performance Testing an API, explains the different types of performa
 
 
 
-## Know more on the Discord server <img alt="Coding" height="25" width="32"  src="https://cliply.co/wp-content/uploads/2021/08/372108630_DISCORD_LOGO_400.gif">
+## Know more on the Discord server <img alt="Coding" height="25" width="32"  src="notes/assets/discord.gif">
 You can get more engaged on the discord server for more latest updates and discussions in the community at [Discord](https://discord.com/invite/nEN6EBYPq9)
 
 
-## Download a free PDF <img alt="Coding" height="25" width="40" src="https://emergency.com.au/wp-content/uploads/2021/03/free.gif">
+## Download a free PDF <img alt="Coding" height="25" width="40" src="notes/assets/free.gif">
 
 _If you have already purchased a print or Kindle version of this book, you can get a DRM-free PDF version at no cost. Simply click on the link to claim your free PDF._
-[Free-Ebook](https://packt.link/free-ebook/9781804617908) <img alt="Coding" height="15" width="35"  src="https://media.tenor.com/ex_HDD_k5P8AAAAi/habbo-habbohotel.gif">
+[Free-Ebook](https://packt.link/free-ebook/9781804617908) <img alt="Coding" height="15" width="35"  src="notes/assets/habbo.gif">
 
 
-We also provide a PDF file that has color images of the screenshots/diagrams used in this book at [GraphicBundle](https://packt.link/gbp/9781804617908) <img alt="Coding" height="15" width="35"  src="https://media.tenor.com/ex_HDD_k5P8AAAAi/habbo-habbohotel.gif">
+We also provide a PDF file that has color images of the screenshots/diagrams used in this book at [GraphicBundle](https://packt.link/gbp/9781804617908) <img alt="Coding" height="15" width="35"  src="notes/assets/habbo.gif">
 
 
 ## Get to know the Author
