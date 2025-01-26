@@ -79,7 +79,7 @@
 
 1. 创建示例集合 `Flow Requests`；
 
-2. 创建示例环境 `ToDo Env`，并定义环境变量 `base_url` 的值为当前示例项目的 `URL`：`https://8000-djwester-todolisttestin-4oqyi9aq1tu.ws-us117.gitpod.io/`；最后关联到 `Flow Requests` 集合；
+2. 创建示例环境 `ToDo Env`，并定义环境变量 `base_url` 的值为当前示例项目的 `URL`：`https://8000-djwester-todolisttestin-4oqyi9aq1tu.ws-us117.gitpod.io`；最后关联到 `Flow Requests` 集合；
 
 3. 创建三个请求：
 
@@ -112,7 +112,7 @@
 
 **图 8.3 从新建窗口创建一个 Flows 工作流** [^1]
 
-稍等片刻可以看到一个初始化的 `Flows` 画布，上面又一个启动模块（Start）：
+稍等片刻可以看到一个初始化的 `Flows` 画布，上面有一个启动模块（Start）：
 
 ![](assets/8.4.png)
 
