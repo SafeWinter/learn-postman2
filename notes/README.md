@@ -16,9 +16,9 @@ API Testing and Development with Postman 第二版自学笔记整理进度。
 |      :orange_book:       | Chapter 5  | Understanding Authorization Options                          |
 |    :heavy_check_mark:    | Chapter 6  | [Creating Test Validation Scripts](./Ch06-Creating-Test-Validation-Scripts.md) |
 |    :heavy_check_mark:    | Chapter 7  | [Data-Driven Testing](./Ch07-Data-Driven-Testing.md)         |
-|      :orange_book:       | Chapter 8  | Workflow Testing                                             |
-| :hourglass_flowing_sand: | Chapter 9  | Running API Tests in Cl with Newman                          |
-|        :no_entry:        | Chapter 10 | Monitoring APIs with Postman                                 |
+|    :heavy_check_mark:    | Chapter 8  | Workflow Testing                                             |
+|    :heavy_check_mark:    | Chapter 9  | Running API Tests in Cl with Newman                          |
+| :hourglass_flowing_sand: | Chapter 10 | Monitoring APIs with Postman                                 |
 |        :no_entry:        | Chapter 11 | Testing an Existing API                                      |
 |        :no_entry:        | Chapter 12 | Creating and Using Mock Servers in Postman                   |
 |        :no_entry:        | Chapter 13 | Using Contract Testing to Verify an API                      |
