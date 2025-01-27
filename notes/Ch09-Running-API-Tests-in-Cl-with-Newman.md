@@ -121,9 +121,9 @@ Newman Test
 
 ### 实测2：带环境 JSON 和 CSV 映射文件的测试集合
 
-新建测试集合 `Newman Test`，并在该集合下新建测试 GET 请求 `Test GET`，`URL` 为：`{{base_url}}/get?{{queryParam}}={{queryParamVal}}`。然后导出 `JSON` 文件备用：`TestCollection.json`。
+先在 `Postman` 中新建一个测试集合 `Newman Test`，并在该集合下新建测试 GET 请求 `Test GET`，`URL` 为：`{{base_url}}/get?{{queryParam}}={{queryParamVal}}`；然后导出 `JSON` 文件备用：`TestCollection.json`。
 
-在新建测试环境 `Newman Test Env`，并定义变量 `base_url` 的值为 `https://postman-echo.com`。然后导出 `JSON` 文件备用：`NewmanTestEnvironment.json`。
+再新建测试环境 `Newman Test Env`，并定义变量 `base_url` 的值为 `https://postman-echo.com`；然后导出 `JSON` 文件备用：`NewmanTestEnvironment.json`。
 
 执行下列 `PowerShell` 命令，在桌面上生成一个示例 `CSV` 文件 `DataDrivenInput.csv`：
 
@@ -465,8 +465,8 @@ C:\Users\ad\Desktop\MyReporter
 
 ```js
 function MyCustomNewmanReporter (newman, reporterOptions, collectionRunOptions) {  
-newman.on('start', function (err) {
-    if (err) { return; }
+    newman.on('start', function (err) {
+        if (err) { return; }
         console.log('Collection run starting')
     });
     newman.on('item', function (err, args) {
@@ -475,7 +475,7 @@ newman.on('start', function (err) {
     newman.on('done', function () {
         console.log('all done!')
     });
-};
+}
 module.exports = MyCustomNewmanReporter
 ```
 
