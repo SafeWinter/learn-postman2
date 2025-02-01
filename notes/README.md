@@ -18,7 +18,7 @@ API Testing and Development with Postman 第二版自学笔记整理进度。
 |    :heavy_check_mark:    | Chapter 7  | [Data-Driven Testing](./Ch07-Data-Driven-Testing.md)         |
 |    :heavy_check_mark:    | Chapter 8  | [Workflow Testing](./Ch08-Workflow-Testing.md)               |
 |    :heavy_check_mark:    | Chapter 9  | [Running API Tests in Cl with Newman](./Ch09-Running-API-Tests-in-Cl-with-Newman.md) |
-|      :orange_book:       | Chapter 10 | [Monitoring APIs with Postman](./Ch10-Monitoring-APIs-with-Postman.md) |
+|    :heavy_check_mark:    | Chapter 10 | [Monitoring APIs with Postman](./Ch10-Monitoring-APIs-with-Postman.md) |
 |      :orange_book:       | Chapter 11 | Testing an Existing API                                      |
 |      :orange_book:       | Chapter 12 | Creating and Using Mock Servers in Postman                   |
 |      :orange_book:       | Chapter 13 | Using Contract Testing to Verify an API                      |
