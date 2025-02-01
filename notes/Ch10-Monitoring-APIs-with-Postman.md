@@ -166,6 +166,10 @@
 > ![](assets/10.14.png)
 >
 > **图 10.14 查看监视器免费运行次数的用量入口位置**
+>
+> 然后在打开的浏览器页面（https://web.postman.co/billing/add-ons/overview）查看具体用量：
+>
+> ![](assets/10.15.png)
 
 
 
