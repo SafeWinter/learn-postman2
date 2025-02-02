@@ -411,13 +411,137 @@ pm.sendRequest({
 
 
 
-3.5
+### 3.5 对修改接口的测试
+
+而对于修改接口 `PUT /tasks/{{task_id}}` 的测试，则需要先满足两个前提：
+
+- 用户已登录；
+- 已生成转为修改接口新增的测试数据；
+
+第一项很好实现，直接配置 `Authorization` 标签即可。
+
+第二项则需要先调新增接口，成功后再对临时新增的数据进行修改。怎样复用新增接口中的创建任务逻辑、同时又不触发新增接口中的测试脚本呢？
+
+这里作者采用了一个非常巧妙的设计：在新增接口的测试脚本末尾，将当前请求直接存入一个环境变量（`req`）：
+
+```js
+pm.environment.set('req', pm.request)
+```
+
+实际效果如下图所示：
+
+![](assets/11.27.png)
+
+**图 11.13 改造新增接口的测试逻辑，在末尾将本次请求直接存入变量 req 中**
+
+然后转到修改接口的 `Pre-request` 选项卡，读取 `req` 的值并通过脚本调用新增接口，新增结束后，再将任务 `ID` 更新到 `task_id` 中：
+
+```js
+// use the 'Create a task' to create a task & set its task_id
+pm.sendRequest(
+  pm.environment.get('req'),
+  function(err, resp) {
+    if(err) {
+      console.error(err);
+      return;
+    }
+    const {id: task_id} = resp.json();
+    pm.environment.set('task_id', task_id);
+  }
+)
+```
+
+最后切到 `Post-response` 选项卡，对修改后的内容进行测试：
+
+```js
+pm.test('Description matches what was set', function() {
+  const { description } = pm.response.json();
+  pm.expect(description).to.eql('modified task')
+});
+```
+
+实测效果：
+
+![](assets/11.26.png)
+
+**图 11.14 包含提前新增数据的修改接口测试结果截图**
+
+也可以在浏览器中查看修改结果：
+
+![](assets/11.28.png)
+
+**图 11.15 从浏览器再次验证修改接口的测试逻辑（先新增一条，再进行修改。符合预期）**
 
 
 
+### 3.6 对删除接口的测试
+
+延用修改接口的测试思路，删除接口 `DELETE /tasks/{{task_id}}` 的测试流程设计如下：
+
+1. 配置 `Authorization` 鉴权选项；（与新增、修改接口一致）
+2. 发送请求前先新增一条临时数据，并将其 ID 更新到 `task_id` 变量中；（与修改接口一致）
+3. 执行删除后，检查响应码是否正常；
+4. 随即利用 `task_id` 调用单个实例的查询接口，验证是否删除成功。
+
+首先配置登录令牌：
+
+![](assets/11.31.png)
+
+**图 11.16 为删除接口配置登录令牌**
+
+然后设置请求前脚本：
+
+```js
+pm.sendRequest(
+  pm.environment.get('req'),
+  function(err, resp) {
+    if(err) {
+      console.error(err);
+      return;
+    }
+    const { id: task_id } = resp.json();
+    pm.environment.set('task_id', task_id);
+  }
+);
+```
+
+接着是删除请求响应后的测试脚本：
+
+```js
+pm.test("Status code is 201 or 200", function () {
+    pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+});
+
+const base_url = pm.environment.get('base_url');
+const task_id = pm.environment.get('task_id');
+pm.sendRequest({
+  url: `${base_url}/tasks/${task_id}`,
+  method: 'GET'
+}, function(err, resp) {
+  if(err) {
+    console.error(err);
+    return;
+  }
+  console.log(`resp.status: ${resp.status}`);
+  pm.expect(resp.status).to.eql('Not Found');
+});
+```
+
+实测结果如下：
+
+![](assets/11.29.png)
+
+**图 11.17 先新增、再删除、最后再查询验证的删除接口实测效果图**
+
+此外，也可以从线上的 `GitPod` 后台看到三次请求的日志信息：
+
+![](assets/11.30.png)
+
+**图 11.18 从 GitPod 看到的删除接口实测日志信息截图**
 
 
 
+## 4 测试集合的共享
 
 
 
