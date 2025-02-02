@@ -244,13 +244,174 @@ poetry run python remove_tables.py
 
 
 
+### 3.1 测试环境的改造
+
+根据前面的设计，下一步应该逐一输入每个接口的 `URL`、请求参数等等。为方便管理，应该将通用参数放到放到专门的测试环境中，其中包括：
+
+- `base_url`：从集合变量迁移到专门的环境中，便于统一管理；
+- `task_id`：待测试的单个待办项 ID。其值随着测试的进行，很可能不为 1；
+- `CALL`：这是两个版本中都有提及、却未能补充说明的一个神秘变量。经本人实测，应该是方便后期临时新建某个请求，并通过该变量实现请求方式而动态切换，相当于解耦请求方法。例如按如下方式对 `CALL` 变量赋初值 `GET`：
+
+![](assets/11.19.png)
+
+CALL 变量的用法如下所示：
+
+![](assets/11.20.png)
+
+不过，这种动态调用方式可能有违 `Postman` 接口测试最佳实践，在本书的两个版本中都没有做进一步说明。
+
+> [!important]
+>
+> **关于测试环境的几点重要说明**
+>
+> 1. 对请求方法使用变量：经实测，在 `Postman` 的请求方法上使用变量时，
+>
+>    1. 该变量名必须全部大写（`CALL`）；
+>    2. 但是变量的值可以是小写（`get` / `post` 均可）；
+>
+> 2. 变量的初始值与当前值的区别：
+>
+>    1. 根据书中观点，初始值仅用于给人们提供参考，使用时只用当前值（没说到点子上）；
+>    2. 而根据 `Postman` [官方文档](https://learning.postman.com/docs/sending-requests/variables/variables/#initial-and-current-values)，初始值（`Initial value`）会同步到 `Postman` 服务器，因此不宜存放敏感信息。确需共享敏感信息，建议将其类型设为 `secret`；
+>    3. 当前值（`Current value`）不会同步到 `Postman` 服务器，这些值仅在本地持久化，数据会相对安全些。
+>    4. 如果后期需要频繁使用敏感信息，建议还是将变量放入 `vault` 作用域，这样可实现加密存储，以确保敏感数据的安全性。例如：
+>
+>    ![](assets/11.21.png)
+>
+>    **图 11.8 利用 Vault 级变量实现数据的加密存储，甚至可以限定域名，且不会同步到 Postman 服务器**
 
 
 
+### 3.2 对列表查询接口的测试
+
+接口测试不宜大而全，而应该小步走、多迭代。
+
+对于列表查询类接口 `GET /tasks`，可以先硬编码，然后再重构成较灵活的形式。例如先对第一个元素进行检查：
+
+```js
+const tasks = pm.response.json();
+const firstTask = {
+    "id": 77,
+    "description": "Learn API Testing",
+    "status": "Complete",
+    "created_by": "user1"
+}
+pm.test("Check first task data", function () {   
+    // Assume that the first task won't change
+    pm.expect(tasks[0]).to.eql(firstTask);
+});
+```
+
+上述测试存在明显硬伤：列表的第一个待办项很可能会变化。于是可以略作调整，由元素值绝对相等改为对 `key` 集的检查：
+
+```js
+pm.test("Check that the first task has required fields", function () {
+    const taskKeys = Object.keys(jsonData[0]);
+    pm.expect(taskKeys).to.have.members(
+        ['id','description', 'status','created_by']);
+});
+```
 
 
 
+### 3.3 对查询单个实例的测试
 
+对于单个待办事项的查询接口 `GET /tasks/{{task_id}}`，其测试逻辑与列表类似，都需要对目标对象的 `key` 集进行检查。这就涉及重复代码的共享，此时可以将通用脚本放到同一个 **文件夹** 的 `Post-response` 层。但示例项目的特殊性在于，列表返回的是一个集合对象（数组）、单个查询只返回一个元素，不能简单共享所有脚本。
+
+此时就不能用文件夹共享脚本了，但可以利用 `Postman` 全新的私有仓库（`package library`）导出一个私有的 `package` 包，例如命名为 `common-tests`：
+
+```js
+// in common-tests module
+function checkTaskFields(task) {
+  const taskKeys = Object.keys(task);
+  pm.expect(taskKeys).to.have.members([
+    'id', 'status', 'description', 'created_by'
+  ]);
+}
+module.exports = {
+  checkTaskFields
+}
+
+// in Post-response tag
+const { checkTaskFields } = pm.require('common-tests');
+
+const [task] = pm.response.json();
+pm.test("Check first task field", function () {
+    checkTaskFields(task);
+});
+```
+
+
+
+### 3.4 对新增接口的测试
+
+对于新增接口 `POST /tasks`，与查询接口最大的不同在于，出于测试目的新增的临时数据，需要在完成测试后及时清空，即调用删除接口。这样就需要先获取登录令牌。调用登录接口 `POST /token` 后，需将获取的令牌存入环境变量（例如 `token`）：
+
+![](assets/11.22.png)
+
+**图 11.9 调用登录接口后，将获取的令牌存入 token 变量**
+
+注意，这里的 `token` 作用域无论是集合层还是环境层都行，只是放到集合层的语义更好（测试环境可以指定给其他集合，容易引发不必要的冲突）。
+
+这样新增接口就暗含一个前提：需要提前登录换取令牌（也很合理）。
+
+于是，新增接口的测试脚本可以这样写：
+
+```js
+const { checkTaskFields } = pm.require('common-tests');
+
+// check for task keys
+const task = pm.response.json();
+pm.test('Task has a id', function() {
+  checkTaskFields(task);
+});
+
+// clean up test data
+const base_url = pm.environment.get('base_url');
+const {id: task_id} = task;
+const token = pm.environment.get('token');
+const auth = {
+  type: 'bearer',
+  bearer: [{
+    key: 'token',
+    value: `${token}`,
+    type: 'string'
+  }]
+};
+pm.sendRequest({
+  url: `${base_url}/tasks/${task_id}`,
+  method: 'DELETE',
+  auth
+}, function(err, response) {
+  if(err) {
+    console.error(err);
+    return;
+  }
+  pm.expect(response.status).to.eql('OK');
+});
+```
+
+实测结果：
+
+![](assets/11.23.png)
+
+**图 11.10 包含数据清理逻辑的新增接口实测结果**
+
+为了验证上图中新增的 `ID` 为 `2` 任务已被成功删除，可以再查一次列表：
+
+![](assets/11.24.png)
+
+**图 11.11 测试完新增接口，再次调用查询接口，以验证新增接口中的数据清空逻辑是否生效（确已生效）**
+
+最后还需要注意，在新增接口的 `Authorization` 标签中配置登录令牌，表示只有登录成功的用户才可新增待办事项：
+
+![](assets/11.25.png)
+
+**图 11.12 根据获取到的 token 配置新增接口的鉴权类型**
+
+
+
+3.5
 
 
 
