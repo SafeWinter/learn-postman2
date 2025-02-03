@@ -256,7 +256,7 @@
 
 ### 3.7 模拟第三方接口返回随机数据
 
-`Postman` 内置了大量随机变量，以应对各种需要设置随机值的情况，例如城市名称 `$randomCity`、基于 `uuid-v4` 的唯一标识字符串 `$guid` 等，底层参考的是著名的第三方前端随机模块 `Faker`（详见：https://www.npmjs.com/package/@faker-js/faker）。更多内置变量列表及用法，详见 `Postman` 官方文档：https://learning.postman.com/docs/tests-and-scripts/write-scripts/variables-list/。
+`Postman` 内置了大量随机变量，以应对各种需要设置随机值的情况，例如城市名称 `$randomCity`、基于 `uuid-v4` 的唯一标识字符串 `$guid` 等，底层参考的是著名的第三方前端随机模块 `Faker`（详见：[https://www.npmjs.com/package/@faker-js/faker](https://www.npmjs.com/package/@faker-js/faker)）。更多内置变量列表及用法，详见 `Postman` 官方文档：[https://learning.postman.com/docs/tests-and-scripts/write-scripts/variables-list/](https://learning.postman.com/docs/tests-and-scripts/write-scripts/variables-list/)。
 
 书中给出的示例写法为：
 
