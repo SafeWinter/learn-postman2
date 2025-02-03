@@ -172,3 +172,152 @@
 
 **图 12.11 实测请求参数的定义与捕获情况（符合预期）**
 
+
+
+### 3.5 模拟从请求 JSON 中提取信息
+
+需求：从创建待办事项的 `POST` 请求体 `JSON` 中，提取 `description` 和 `status` 字段信息，并作为响应内容的一部分。
+
+方法：
+
+1. 创建一个名为 `Create Task` 的 `POST` 请求：`URL` 设为 `{{url}}/tasks`，状态栏填 `201 Created`，请求体的 `JSON` 内容如下：
+
+   ```json
+   {
+     "description": "Read this book",
+     "status": "Draft",
+     "created_by": "user1"
+   }
+   ```
+
+2. 再在该请求下创建一个同名示例 `Create Task`，其请求方式、`URL`、状态信息均与上述请求一致，唯独响应体内容不同：
+
+   ```json
+   {
+     "description": "{{ $body 'description' }}",
+     "status": "{{ $body 'status' }}"
+   }
+   ```
+
+   ![](assets/12.14.png)
+
+3. 保存示例，回到 `POST` 请求，发送请求即可看到如下效果：
+
+   ![](assets/12.15.png)
+
+> [!important]
+>
+> **重要提示**
+>
+> `$body` 是 Postman 引用请求体对象的固定写法；访问其中的某个属性要写成 `{{ $body 'key_name' }}` 的形式，并且为了返回正确的数据类型，括号两边必须加引号，这一点书中是忽略的，很容易出现类型报错。
+
+
+
+### 3.6 模拟 PUT 请求
+
+除了引用请求体的属性值，`Postman` 还支持对该属性设置默认值。例如，需要响应的 `JSON` 包含两个字段 `description` 和 `status`，示例还可以这样设置默认值：
+
+```json
+{
+    "description": "{{$body 'description' 'Mock Task {{task_id}}'}}",
+    "status": "{{$body 'status' 'Draft'}}"
+}
+```
+
+上述代码中，如果请求体的 `description` 字段有效，则使用该字段值，否则以默认值 `"Mock Task {{task_id}}"` 进行响应，这里的 `{{task_id}}` 即上面演示过的路径参数。同理，如果 `status` 能拿到有效值，则响应时返回对应的 `status` 属性值，否则按默认值 `"Draft"` 处理。
+
+实测示例：
+
+![](assets/12.16.png)
+
+实测请求1：两个属性值均有效
+
+![](assets/12.17.png)
+
+实测请求2：仅 `description` 有效
+
+![](assets/12.18.png)
+
+实测请求3：仅 `status` 有效
+
+![](assets/12.19.png)
+
+> [!tip]
+>
+> **注意**
+>
+> 经实测，`Postman` 判定某个字段是否有效的方法，其实就是看该字段是否存在。如果存在，但赋值为 `""`、`null`、`"undefined"`，都会被视为有效值，如果不符合 `JSON` 语法规范，则会直接报 400 错误：
+>
+> ![](assets/12.20.png)
+>
+> **图 12.12 违反 JSON 语法规范强行发送请求，Postman 将按 400 报错处理**
+
+
+
+### 3.7 模拟第三方接口返回随机数据
+
+`Postman` 内置了大量随机变量，以应对各种需要设置随机值的情况，例如城市名称 `$randomCity`、基于 `uuid-v4` 的唯一标识字符串 `$guid` 等，底层参考的是著名的第三方前端随机模块 `Faker`（详见：https://www.npmjs.com/package/@faker-js/faker）。更多内置变量列表及用法，详见 `Postman` 官方文档：https://learning.postman.com/docs/tests-and-scripts/write-scripts/variables-list/。
+
+书中给出的示例写法为：
+
+```json
+{
+    "country": "US",
+    "city": "{{$randomCity}}",
+    "language": "en_US",
+    "street": "{{$randomStreetAddress}}",
+    "Currency": "USD",
+    "id": "738964000000291009",
+    "state": "New York",
+    "first_name": "{{$randomFirstName}}",
+    "email": "{{$randomEmail}}",
+    "zip": 12345,
+    "created_time": "{{$randomDateRecent}}",
+    "last_name": "{{$randomLastName}}",
+    "time_zone": "GMT",
+    "phone": "{{$randomPhoneNumber}}",
+    "dob": "{{$randomDatePast}}",
+    "status": "active"
+}
+```
+
+可以得到如下结果：
+
+```json
+{
+  "country": "US",
+  "city": "East Hardyshire",
+  "language": "en_US",
+  "street": "73801 Isadore Villages",
+  "Currency": "USD",
+  "id": "738964000000291009",
+  "state": "New York",
+  "first_name": "Kylie",
+  "email": "Piper1@hotmail.com",
+  "zip": 12345,
+  "created_time": "Sun Feb 02 2025 20:49:40 GMT+0000 (Coordinated Universal Time)",
+  "last_name": "Purdy",
+  "time_zone": "GMT",
+  "phone": "676-353-0567",
+  "dob": "Thu Jan 09 2025 19:30:06 GMT+0000 (Coordinated Universal Time)",
+  "status": "active"
+}
+```
+
+实测截图：
+
+![](assets/12.21.png)
+
+![](assets/12.22.png)
+
+> [!tip]
+>
+> **注意**
+>
+> `Postman` 中的内置随机变量还可以用在测试脚本中，通过 `pm.variables.replaceIn()` 函数进行访问，例如：`pm.variables.replaceIn('{{$randomFirstName}}')`。
+>
+> ![](assets/12.23.png)
+>
+> **图 12.13 实测内置随机变量在 Post-response 测试脚本中的用法**
+>
+> 由此也可以看出引号的重要作用，千万不可忽略（感觉作者在这个细节上做得很不够，多次出现漏掉引号的情况）。
