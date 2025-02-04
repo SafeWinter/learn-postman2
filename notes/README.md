@@ -21,7 +21,7 @@ API Testing and Development with Postman 第二版自学笔记整理进度。
 |    :heavy_check_mark:    | Chapter 10 | [Monitoring APIs with Postman](./Ch10-Monitoring-APIs-with-Postman.md) |
 |    :heavy_check_mark:    | Chapter 11 | [Testing an Existing API](./Ch11-Testing-an-Existing-API.md) |
 |    :heavy_check_mark:    | Chapter 12 | [Creating and Using Mock Servers in Postman](./Ch12-Creating-and-Using-Mock-Servers-in-Postman.md) |
-|      :orange_book:       | Chapter 13 | Using Contract Testing to Verify an API                      |
+|    :heavy_check_mark:    | Chapter 13 | [Using Contract Testing to Verify an API](./Ch13-Using-Contract-Testing-to-Verify-an-API.md) |
 | :hourglass_flowing_sand: | Chapter 14 | API Security Testing                                         |
 |        :no_entry:        | Chapter 15 | Performance Testing an API                                   |
 
