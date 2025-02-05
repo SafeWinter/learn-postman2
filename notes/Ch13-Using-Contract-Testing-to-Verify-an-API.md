@@ -209,6 +209,237 @@ DIY 实测：将定义层中的 `/items` 路径改为 `/changedItems`，观察�
 
 
 
+## 8 导入官方契约测试集合
+
+虽然 API 标签页中的接口实例已经实现了 `OpenAPI` 规范和集合层的双向检查，但真正的契约测试还需要在请求前后以测试用例的形式确保各个接口的定义和功能相契合，还得要开发者针对不同的 API 集合编写大量性质相同的定制化脚本。正如第一版中看到的那样，这一步看似轻松，实现起来却非常繁琐。
+
+为此，`Postman` 官方发布了一个专门用于契约测试的公共集合 `Contract Test Generator`，经过这几年的不断更新迭代，目前已经能够实现对目标集合实施无侵入式的契约测试，极大地省去了从零开始手写契约测试脚本的麻烦。该集合的灵感最初来自 `GitHub` 社区开发者 **allenheltondev** 于 2020 年 10 月 9 日贡献的一个开源项目 [postman-contract-test-generator](https://github.com/allenheltondev/postman-contract-test-generator)，由于解了大家的燃眉之急，开源后不久就被 `Postman` 官方复刻到 [自己名下](https://github.com/postman-solutions-eng/postman-contract-test-generator) 进入长期维护并持续迭代。这就是开源的魅力——既方便了后来者，也让项目本身更加完善，同时也提高了开发者自身的影响力。本章唯一美中不足的，应该就是书中漏掉了大量的配置细节，实测时踩了不少的坑（当然也不排除从出书到实测这段时间差里，项目本身的更新迭代导致配置出现些许差异）。无论如何，我都将重新完整梳理一遍这个彩蛋级福利的用法，也算为开源社区略尽绵力吧。
+
+首先从官方社区导入这个测试集合。在 `Postman` 顶部的搜索框中检索关键字 `Contract Test Generator` 就可以看到基于 `OpenAPI v3.x` 规范的测试集合 `(Generator) Contract Tests - OAS3`：
+
+![](assets/13.16.png)
+
+**图 13.9 在 Postman 的顶部搜索框检索契约测试生成工具**
+
+点击后将打开对应的 API 首页，并通过右边的 Fork 按钮复刻到自己的帐号下：
+
+![](assets/13.17.png)
+
+**图 13.10 从生成工具的文档首页点击 Fork 复刻到自己帐号下**
+
+然后在弹出的新页面确认 Fork 的相关配置，其中务必勾选与该集合关联的测试环境：
+
+![](assets/13.18.png)
+
+**图 13.11 Fork 操作时务必勾选对应的测试环境（非常重要）**
+
+复制到自己名下后将在 `Collection` 导航页看到这样的结构：
+
+![](assets/13.19.png)
+
+**图 13.12 复刻到自己帐号下看到的契约测试集合结构**
+
+
+
+## 9 契约测试集合的详细配置
+
+该集合的工作原理也很简单，只要配置好测试环境中的相关参数，就能通过运行 `Collection Runner` 一次性得到目标集合的契约测试结果。当然，它只实现了契约测试最基本的校验逻辑，开发者可以在此基础上做进一步补充，比起从零开始编写已经好很多了。
+
+以下是此次实测（截至 2025 年 2 月 5 日）需要补全的环境变量（先选中 `Contract Test Environment` 环境）：
+
+|        变量名         |                            变量值                            |
+| :-------------------: | :----------------------------------------------------------: |
+|     `env-apiKey`      |               当前个人帐号生成的有效 API 秘钥                |
+|   `env-workspaceId`   |                    当前工作空间的唯一标识                    |
+|     `env-server`      | 目标集合的服务器基础 URL，也可以是该集合对应的 Mock 服务器的基础 URL |
+|      `env-apiId`      |                     目标 API 的唯一标识                      |
+| `env-apiDefinitionId` |                    目标 API 定义唯一标识                     |
+
+书中只讲了前三个变量，其实还有很多隐含信息：
+
+- 为了配置示例 API 的 `env-server`，需要 **先创建一个对应的 Mock 服务器**，并填入该 Mock 服务器的 `URL`；否则使用导入时默认的 `http://localhost:5000/budgeting/api` 会报错；
+- 新版的 `Generator` 集合必须先发布一版 `API`，即指定一个 `API` 版本号，否则后面有个 `Validate API In Workspace` 请求也会报错；
+- 契约测试脚本中大量使用旧版 `Postman` 的断言写法，需要逐一改为最新的版本，导入必要的 `npm` 模块（例如 `lodash` 等）；
+
+下面逐一进行说明——
+
+### 9.1  env-apiKey 的创建与设置
+
+首先是 `env-apiKey`：为安全起见，生成的 Mock 服务器都设为私有服务器，用自己帐号生成的 API 秘钥进行加密。
+
+![](assets/13.20.png)
+
+**图 13.13 点开 Postman 右上角的个人帐号图标，从浏览器进入对应的设置页面**
+
+![](assets/13.21.png)
+
+**图 13.14 找到 API keys 导航页，按 Generate API Key 按钮生成秘钥**
+
+![](assets/13.22.png)
+
+**图 13.15 输入一个秘钥名称，以便后续管理（如 DemoContractTesting）**
+
+![](assets/13.23.png)
+
+**图 13.16 复制秘钥妥善保管（注意：新生成的 API 秘钥只有一次机会可供复制，错过后只能重新生成）**
+
+![](assets/13.24.png)
+
+**图 13.17 秘钥生成后，可在列表中找到该记录，可从右边的隐藏菜单中重新生成或删除**
+
+然后就可以赋给 `env-apiKey` 变量（顺便将该变量的类型设为 `secret`）：
+
+![](assets/13.25.png)
+
+
+
+### 9.2 env-workspaceId 的设置
+
+当前工作空间的 ID，从首页右侧的隐藏菜单项 `Workspace info` 获取：
+
+![](assets/13.26.png)
+
+![](assets/13.27.png)
+
+![](assets/13.28.png)
+
+
+
+### 9.3 Mock 服务器及 env-server 的配置
+
+找到 `Collection` 侧边栏，从测试集合 `Budgeting API` 的隐藏菜单中创建 Mock 服务器：
+
+![](assets/13.29.png)
+
+![](assets/13.30.png)
+
+![](assets/13.31.png)
+
+然后填入环境变量：
+
+![](assets/13.32.png)
+
+最后别忘了还要将该 `URL` 更新到 API 实例中的 `YAML` 定义文件中：
+
+![](assets/13.33.png)
+
+以及最初导入 `YAML` 文件时自动创建的测试集合变量 `baseUrl`（这个坑非常隐蔽，浪费了很多次 `Collection Runner` 免费额度才发现问题）：
+
+![](assets/13.38.png) 
+
+
+
+### 9.4 API 测试实例的配置
+
+根据契约测试生成工具的最新版本，目标 API 实例需要先发布一个版本，具体操作如下：
+
+![](assets/13.34.png)
+
+发布后的 API 实例首页如下图所示：
+
+![](assets/13.35.png)
+
+接着，点击上图右侧的图标，找到 API 对应的唯一标识，以及 API 定义层的唯一标识（后续契约测试有用）：
+
+![](assets/13.36.png)
+
+**图 13.18 从 API 实例的详情信息栏找到对应 API 唯一标识与定义层标识**
+
+然后粘贴到环境变量中：
+
+![](assets/13.37.png)
+
+
+
+### 9.5 契约测试脚本的调试
+
+完成测试环境 `Contract Test Environment` 的配置后，为了提高 `Collection Runner` 的一次性通过率，接下来需要手动发送一遍契约测试集合中的每个请求，一边学习不同的测试脚本的写法，一边打开 `Postman` 的控制台，根据警告信息完善脚本。实测时发现的主要问题包括：
+
+- `Using "_" is deprecated. Use "require('lodash')" instead.`：
+  - 解决方案：新版 `lodash` 模块需要显式声明，需要在脚本开头处添加一句：`const _ = require('lodash');`
+- `Using "postman.setNextRequest" is deprecated. Use "pm.execution.setNextRequest()" instead.`
+  - 解决方案：按提示改为最新版写法即可：`pm.execution.setNextRequest()`
+
+接着，就可以启动 `Collection Runner` 了：
+
+![](assets/13.39.png)
+
+**图 13.19 完成环境配置和脚本微调后，就可以启动契约测试集合的 Collection Runner 了**
+
+第一次运行后，部分请求测试不通过：
+
+![](assets/13.40.png)
+
+**图 13.20 首次运行后，部分请求校验未通过（有意为之）**
+
+根据断言提示，主要发现三类问题：
+
+1. `Schema` 对象名称的首字母没有大写：
+   1. `Schema 'item' begins with an uppercase letter | AssertionError: expected 'i' to equal 'I'`；
+   2. `Schema 'items' begins with an uppercase letter | AssertionError: expected 'i' to equal 'I'`；
+   3. `Schema 'itemId' begins with an uppercase letter | AssertionError: expected 'i' to equal 'I'`
+2. 缺失 `description` 属性问题：`Schema property 'item.transaction_date' has a description between 10 and 100 characters | AssertionError: expected { type: 'string', format: 'date' } to have property 'description'`；
+3. 缺失 `example` 属性问题：`Schema property 'item.transaction_date' has an example | AssertionError: expected { type: 'string', format: 'date' } to have property 'example'`。
+
+根据这些断言提示，回到 `YAML` 定义文件逐一修改后（重要提醒：不仅是定义的地方要改，所有引用了该定义的地方也要同步更新）：
+
+![](assets/13.42.png)
+
+再次运行 `Runner`：
+
+![](assets/13.41.png)
+
+**图 13.21 按要求修改 YAML 文件后，再次运行 Collection Runner 进行验证（全部通过测试）**
+
+
+
+## 10 Postman 拦截器的用法
+
+拦截器的作用：可用于捕获契约测试中实际用到的集合请求。
+
+拦截器可作为逆向工程的一部分反观实际调用的接口请求，但由于需要安装 `Chrome` 插件，用户体验较差，仅供参考。
+
+
+
+## 11 契约测试的运维
+
+**契约测试的主要目的**：确保 API 提供者在修改 API 时不会违反接口契约。
+
+
+
+**责任划分**：API 消费端可 **偶尔运行** 契约测试；主要责任仍在 **供应端**。
+
+
+
+**契约测试的运行**
+
+- 供应端：
+  - 这些测试应作为 API 开发团队的构建流程的一部分运行。
+  - 可参考第 9 章构建基于命令行的契约测试运行模式。
+- 消费端：
+  - 不需要在每次更改时运行测试，因为用户界面的更改通常不会影响 API 的工作方式。
+  - 可利用 `Postman` 的监视器机制定期检查 API 是否仍符合合同，参考第10章（使用 Postman 监控 API）。
+
+
+
+**契约测试失败的原因分析**
+
+1. **存在 bug**：需更新代码，修复 Bug。
+2. **需求变更**：API 可能需要以违反契约的形式进行更改。此时需要相关方进行沟通并更新契约。
+
+
+
+**契约测试的共享**：
+
+- **必要性**：合同测试需要由提供者和消费者共同访问和维护。
+- **共享方式**
+  - 创建一个专门的工作空间（`Workspace`）来存储和共享合同测试。
+  - 设置工作空间的可见性为团队，并邀请相关人员加入。
+  - 共享合同测试集合到该工作空间，并分配不同的角色权限（如管理员、查看者、编辑者）。
+- **注意事项**：免费版 `Postman` 账户有请求共享限制，大量合同测试可能需要升级到付费计划。
+
+
+
 
 
 
