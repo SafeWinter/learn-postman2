@@ -309,7 +309,7 @@ pm.test("Status code is 201", function() {
 
 接着在浏览器查看项目首页，也没有书中说的 `alert` 注入问题（当真欧皇附体？）：
 
-![image-20250206162520735](C:/Users/ad/AppData/Roaming/Typora/typora-user-images/image-20250206162520735.png)
+![](assets/14.11.png)
 
 借着这波好运，赶紧再跑一遍数据批量清空。在 `GET {{base_url}}/task` 接口的响应后脚本中输入以下内容（直接用 JS 脚本批量删除，书中方法太过陈旧，还得再消耗一次 `Collection Runner` 免费额度，不知道作者怎么想的）：
 
@@ -348,17 +348,17 @@ for(const id of task_ids) {
 
 结果还是报错：
 
-![image-20250206163441713](C:/Users/ad/AppData/Roaming/Typora/typora-user-images/image-20250206163441713.png)
+![](assets/14.12.png)
 
 仔细一想，真相大白了：新增接口必须在请求体中手动指定 `created_by` 字段，否则 **一律按匿名处理**（就当是作者故意挖的坑吧）。
 
 只有再重来一遍了：
 
-![image-20250206164422492](C:/Users/ad/AppData/Roaming/Typora/typora-user-images/image-20250206164422492.png)
+![](assets/14.13.png)
 
 再次执行批量删除，只有一次是后台原因删除失败，五次请求未发送，其余全部删除成功，终于熬出头了：
 
-![image-20250206165408616](C:/Users/ad/AppData/Roaming/Typora/typora-user-images/image-20250206165408616.png)
+![](assets/14.14.png)
 
 
 
@@ -366,74 +366,76 @@ for(const id of task_ids) {
 
 其实只要具备 `JavaScript` 基础，完全可以跳过 `Collection Runner` 的限制，在 `Pre-request` / `Post-response` 脚本中实现批量新增和删除。
 
-1. 批量新增的实现：
+批量新增的纯 JS 脚本实现：
 
-   1. 将原始 `JSON` 数据集不经任何处理直接放到 `Postman` 的私有模块中，例如 `my-blns`：
+1. 将原始 `JSON` 数据集不经任何处理直接放到 `Postman` 的私有模块中，例如 `my-blns`：
+
+   ```js
+   const data = [
+     "", 
+     "dW5kZWZpbmVk", 
+     "dW5kZWY=", 
+     "bnVsbA==", 
+     "TlVMTA==", 
+     "KG51bGwp", 
+     // ...
+     "e3sgIiIuX19jbGFzc19fLl9fbXJvX19bMl0uX19zdWJjbGFzc2VzX18oKVs0MF0oIi9ldGMvcGFz",
+     "c3dkIikucmVhZCgpIH19"
+   ];
+   module.exports = {
+       data
+   };
+   ```
+
+2. 新建请求 `GET {{base_url}}/tasks`，用于在批量新增后查询总的待办项列表：
+
+   1. 在 `Pre-request` 中输入以下脚本：
 
       ```js
-      const data = [
-        "", 
-        "dW5kZWZpbmVk", 
-        "dW5kZWY=", 
-        "bnVsbA==", 
-        "TlVMTA==", 
-        "KG51bGwp", 
-        // ...
-        "e3sgIiIuX19jbGFzc19fLl9fbXJvX19bMl0uX19zdWJjbGFzc2VzX18oKVs0MF0oIi9ldGMvcGFz",
-        "c3dkIikucmVhZCgpIH19"
-      ];
-      module.exports = {
-          data
-      };
+      const atob = require('atob');
+      const { data } = pm.require('your/package/path/to/my-blns');
+      // console.log(data.length);
+      
+      const postRequest = description => ({
+        url: pm.collectionVariables.replaceIn('{{base_url}}/tasks'),
+        method: 'POST',
+        header: { 'Content-Type': 'application/json' },
+        body: {
+          mode: 'raw',
+          raw: JSON.stringify({
+            description,
+            status: "Draft",
+            created_by: "user2"
+          })
+        }
+      });
+      
+      data.map(d => atob(d))
+        .map((description, i) => pm.sendRequest(
+          postRequest(description), 
+          (err, resp) => {
+            if(err) {
+              console.error(err);
+              return;
+            }
+            pm.test(`Create task_${i+1} completed: the status code should be 201`,
+              () => pm.expect(resp.code).to.eql(201));
+          }
+        ));
       ```
 
-   2. 新建请求 `GET {{base_url}}/tasks`，用于在批量新增后查询总的待办项列表：
+   2. 在 `Post-response` 输入以下脚本：
 
-      1. 在 `Pre-request` 中输入以下脚本：
+      ```js
+      pm.test('Task list length should be greater than 0', function () {
+           pm.expect(pm.response.json())
+               .to.be.an('array')
+               .and
+               .to.have.lengthOf.at.least(1, "Task list length should be greater than 0");
+      });
+      ```
 
-         ```js
-         const { data } = pm.require('your/package/path/to/my-blns');
-         // console.log(data.length);
-         
-         const postRequest = description => ({
-           url: pm.collectionVariables.replaceIn('{{base_url}}/tasks'),
-           method: 'POST',
-           header: { 'Content-Type': 'application/json' },
-           body: {
-             mode: 'raw',
-             raw: JSON.stringify({
-               description,
-               status: "Draft",
-               created_by: "user2"
-             })
-           }
-         });
-         
-         data.map((description, i) => pm.sendRequest(
-           postRequest(description), 
-           (err, resp) => {
-             if(err) {
-               console.error(err);
-               return;
-             }
-             pm.test(`Create task_${i+1} completed: the status code should be 201`,
-               () => pm.expect(resp.code).to.eql(201));
-           })
-         );
-         ```
-
-      2. 在 `Post-response` 输入以下脚本：
-
-         ```js
-         pm.test('Task list length should be greater than 0', function () {
-              pm.expect(pm.response.json())
-                  .to.be.an('array')
-                  .and
-                  .to.have.lengthOf.at.least(1, "Task list length should be greater than 0");
-         });
-         ```
-
-   3. 至于批量删除，刚才实测过程中已经看过脚本了，这里只说明一下实现逻辑。利用列表查询接口 `GET {{base_url}}/tasks` 获取到任务列表后，批量提取任务列表的 `id`；然后分别调用 `DELETE` 接口 `POST {{base_url}}/tasks/:id` 完成删除（注意：删除待办项时，别忘了在请求中带上鉴权配置对象 `auth`）。
+3. 至于批量删除，刚才实测过程中已经看过脚本了，这里只说明一下实现逻辑。利用列表查询接口 `GET {{base_url}}/tasks` 获取到任务列表后，批量提取任务列表的 `id`；然后分别调用 `DELETE` 接口 `POST {{base_url}}/tasks/:id` 完成删除（注意：删除待办项时，别忘了在请求中带上鉴权配置对象 `auth`）。
 
 这样就可以在 `Postman` 中随意批量新增和删除待办任务了，完全不受 `Collection Runner` 的制约。
 
@@ -469,3 +471,10 @@ const jsonBody = {
 ## 4 小结
 
 本章内容整体感觉较敷衍，上半部分介绍相关概念几乎全是蜻蜓点水式的描述，后半段实战环节的条理性又明显不如前面的章节，漏掉很多关键细节，且在方案选择上过分依赖 `Collection Runner`，致使我在实测过程中浪费了不少免费额度。不过依次填完这些坑后，我也有机会用纯 `JavaScript` 脚本的方式实现待办任务的批量创建与删除，顺便学习了用 `pm.sendRequest()` 发送 `POST` 请求和 `DELETE` 请求的写法，也算是因祸得福了吧。
+
+
+
+
+
+> **后记**
+> 最后再跟大家分享个操作技巧，遇到不会写的 `Postman` 脚本，可以利用其自带的 AI 机器人 `Postbot` 直接给答案。本章实测中几种 `pm.sendRequest()` 的写法就是这么来的，比查官方文档快多了。大家一定要学会使用 AI 工具，千万不要故步自封，成为 AI 时代的 “新文盲”。
